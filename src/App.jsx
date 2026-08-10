@@ -72,7 +72,6 @@ export default function App() {
   const [currentView, setCurrentView] = useState('home');
   const [selectedCategory, setSelectedCategory] = useState('all');
 
-  // Load saved state from LocalStorage on initial render
   const [messages, setMessages] = useState(() => {
     const saved = localStorage.getItem('nyaya_chat_messages');
     return saved ? JSON.parse(saved) : [];
@@ -91,41 +90,58 @@ export default function App() {
   const messagesEndRef = useRef(null);
   const recognitionInstanceRef = useRef(null);
 
-  // Auto-save chat messages to LocalStorage whenever they change
   useEffect(() => {
     localStorage.setItem('nyaya_chat_messages', JSON.stringify(messages));
   }, [messages]);
 
-  // Auto-save premium status to LocalStorage
   useEffect(() => {
     localStorage.setItem('nyaya_is_premium', isPremium);
   }, [isPremium]);
+
+  useEffect(() => {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.onvoiceschanged = () => {
+        window.speechSynthesis.getVoices();
+      };
+    }
+  }, []);
 
   const clearChatHistory = () => {
     setMessages([]);
     localStorage.removeItem('nyaya_chat_messages');
   };
 
+  const stopSpeaking = () => {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+    }
+  };
+
+  // Indian Accent TTS with Hindi Pronunciation for "Nyaya Mitra"
   const speakText = (text) => {
     if (!('speechSynthesis' in window)) return;
     try {
       window.speechSynthesis.cancel();
-      const cleanText = text.replace(/[*#_•]/g, '');
-      const utterance = new SpeechSynthesisUtterance(cleanText);
 
+      // Replace instances of 'Nyaya-Mitra' or 'Nyaya Mitra' with phonetic Hindi spelling so English TTS reads it as "Nyaay-Mitra"
+      let formattedText = text.replace(/Nyaya[- ]Mitra/gi, 'Nyaay Mitra');
+      formattedText = formattedText.replace(/[*#_•]/g, '');
+
+      const utterance = new SpeechSynthesisUtterance(formattedText);
       const voices = window.speechSynthesis.getVoices();
-      const calmVoice = voices.find(
-        (v) =>
-          v.name.includes('Google UK English Female') ||
-          v.name.includes('Samantha') ||
-          v.name.includes('Natural') ||
-          v.name.includes('Zira') ||
-          v.lang.startsWith('en')
+      
+      const indianVoice = voices.find(
+        (v) => v.lang === 'en-IN' || v.lang.includes('en_IN') || v.name.includes('India')
       );
 
-      if (calmVoice) utterance.voice = calmVoice;
-      utterance.rate = 0.88;
-      utterance.pitch = 0.95;
+      if (indianVoice) {
+        utterance.voice = indianVoice;
+      }
+
+      utterance.lang = 'en-IN';
+      utterance.rate = 0.92;
+      utterance.pitch = 1.0;
 
       utterance.onend = () => setIsSpeaking(false);
       utterance.onerror = () => setIsSpeaking(false);
@@ -137,13 +153,7 @@ export default function App() {
     }
   };
 
-  const stopSpeaking = () => {
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel();
-      setIsSpeaking(false);
-    }
-  };
-
+  // Speech Recognition set back to Indian English (en-IN)
   const handleMicClick = async () => {
     setStatusMessage('');
     stopSpeaking();
@@ -174,7 +184,7 @@ export default function App() {
       recognitionInstanceRef.current = recognition;
       recognition.continuous = false;
       recognition.interimResults = true;
-      recognition.lang = 'en-US';
+      recognition.lang = 'en-IN'; // Indian English recognition
 
       recognition.onstart = () => {
         setIsRecording(true);
@@ -302,7 +312,7 @@ export default function App() {
       {currentView === 'home' && (
         <main style={{ maxWidth: '850px', width: '100%', margin: '0 auto', padding: '36px 20px', flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', boxSizing: 'border-box' }}>
           <span style={{ padding: '4px 14px', borderRadius: '9999px', backgroundColor: 'rgba(6, 78, 59, 0.4)', border: '1px solid rgba(52, 211, 153, 0.3)', color: '#6ee7b7', fontSize: '12px', fontWeight: '600', marginBottom: '20px' }}>
-            ✓ Verified Legal Information & Voice Assistant (Auto-Saved)
+            ✓ Verified Legal Information & Voice Assistant
           </span>
 
           <h2 style={{ fontSize: '36px', fontWeight: '800', lineHeight: '1.2', margin: '0 0 16px 0' }}>

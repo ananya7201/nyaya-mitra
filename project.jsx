@@ -423,18 +423,27 @@ export default function ChatPage() {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages]);
 
-  const speak = useCallback(
-    (text) => {
-      if (!voiceEnabled || !window.speechSynthesis) return;
-      window.speechSynthesis.cancel();
-      const utter = new SpeechSynthesisUtterance(text);
-      utter.rate = 0.95;
-      utter.pitch = 1;
-      window.speechSynthesis.speak(utter);
-    },
-    [voiceEnabled]
+  const speakText = (text) => {
+  if (!('speechSynthesis' in window)) return;
+
+  window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(text);
+  
+  const voices = window.speechSynthesis.getVoices();
+  const indianVoice = voices.find(
+    (voice) => voice.lang === 'en-IN' || voice.lang.includes('en_IN')
   );
 
+  if (indianVoice) {
+    utterance.voice = indianVoice;
+  }
+
+  utterance.lang = 'en-IN';
+  utterance.rate = 0.95;
+  utterance.pitch = 1.0;
+
+  window.speechSynthesis.speak(utterance);
+};
   const sendMessage = async (text) => {
     const trimmed = text.trim();
     if (!trimmed) return;
