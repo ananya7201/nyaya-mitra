@@ -27,4 +27,4 @@ dist-ssr
 node_modules/
 backend/.env
 .venv/
-dist/
+
